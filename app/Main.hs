@@ -22,4 +22,3 @@ main = do
   print $ programToExVal `liftM` stringToProgram input
   print "------------result----------------"
   putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
-
