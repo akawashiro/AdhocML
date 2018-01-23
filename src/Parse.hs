@@ -1,16 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Parse where
--- module Parse
-  -- ( stringToProgram,
-  --   parsePlusExpr,
-  --   parsePlus,
-  --   parseMult,
-  --   parseMult',
-  --   parseApp,
-  --   parseA,
-  --   Program,
-  --   parse
-  -- ) where
+module Parse
+  ( stringToProgram,
+    parsePlusExpr,
+    parsePlus,
+    parseMult,
+    parseMult',
+    parseApp,
+    parseA,
+    Program,
+    parse,
+    Expr(..),
+    BinOp(..)
+  ) where
 
 import Text.ParserCombinators.Parsec
 
@@ -114,9 +115,9 @@ parseAExpr = try parseInt <|>
              try parseBool <|>
              try (do { char '('; spaces; e<-parseExpr; spaces; char ')'; return e}) <|>
              parseVariable
-             
+
 parseBool :: Parser Expr
-parseBool = (string "True" >> return (EBool True)) <|> (string "True" >> return (EBool True))
+parseBool = (string "True" >> return (EBool True)) <|> (string "False" >> return (EBool False))
 
 parseInt :: Parser Expr
 parseInt = try (do { n<-many1 digit; return (EInt ((read n)::Int))})
@@ -126,56 +127,57 @@ parseIf = do {string "if"; spaces; c <- parseExpr; spaces; string "then"; spaces
              spaces; string "else"; spaces; e2 <- parseExpr; return (EIf c e1 e2)}
 
 parseValiableName :: Parser String
-parseValiableName = do
-  a <- lower
-  as <- many alphaNum
-  return (a:as)
+parseValiableName = (:) <$> lower <*> (many alphaNum)
+
+parseKeyword :: String -> Parser String
+parseKeyword k = do{ spaces; string k; spaces; return k}
+
+pLet :: Parser String
+pLet = parseKeyword "let"
+
+pRec :: Parser String
+pRec = parseKeyword "rec"
+
+pFun :: Parser String
+pFun = parseKeyword "fun"
+
+pEqual :: Parser String
+pEqual = parseKeyword "="
+
+pArrow :: Parser String
+pArrow = parseKeyword "->"
+
+pIn :: Parser String
+pIn = parseKeyword "in"
 
 parseLet :: Parser Expr
 parseLet = do
-  string "let"
-  spaces
+  pLet
   x <- parseValiableName
-  spaces
-  string "="
-  spaces
+  pEqual
   e1 <- parseExpr
-  spaces
-  string "in"
-  spaces
+  pIn
   e2 <- parseExpr
   return (ELet x e1 e2)
 
 parseLetRec :: Parser Expr
 parseLetRec = do
-  string "let"
-  spaces
-  string "rec"
-  spaces
+  pLet
+  pRec
   x <- parseValiableName
-  spaces
-  string "="
-  spaces
-  string "fun"
-  spaces
+  pEqual
+  pFun
   y <- parseValiableName
-  spaces
-  string "->"
-  spaces
+  pArrow
   e1 <- parseExpr
-  spaces
-  string "in"
-  spaces
+  pIn
   e2 <- parseExpr
   return (ELetRec x y e1 e2)
 
 parseFun :: Parser Expr
 parseFun = do
-  string "fun"
-  spaces
+  pFun
   x <- parseValiableName
-  spaces
-  string "->"
-  spaces
+  pArrow
   e <- parseExpr
   return (EFun x e)

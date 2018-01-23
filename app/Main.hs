@@ -14,8 +14,12 @@ printResult' (Left x:xs) = show x ++ "\n" ++ printResult' xs
 main :: IO ()
 main = do
   input <- getContents
-  -- putStrLn input
-  -- print $ stringToProgram input
-  -- print $ programToExVal `liftM` stringToProgram input
+  print "------------input----------------"
+  putStrLn input
+  print "------------AST----------------"
+  print $ stringToProgram input
+  print "------------result----------------"
+  print $ programToExVal `liftM` stringToProgram input
+  print "------------result----------------"
   putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
 
