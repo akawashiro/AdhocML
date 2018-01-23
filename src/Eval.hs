@@ -3,8 +3,13 @@ module Eval where
 import Parse
 import Data.Maybe
 
-data ExVal = VInt Int | VBool Bool | VProc String Expr [(String,DnVal)] deriving Show
+data ExVal = VInt Int | VBool Bool | VProc String Expr [(String,DnVal)]
 type DnVal = ExVal
+
+instance Show ExVal where
+  show (VInt i) = "(VInt " ++ show i ++ ")"
+  show (VBool b) = "(VBool " ++ show b ++ ")"
+  show (VProc s e _) = "(VProc " ++ show s ++ "," ++ show e ++ ",[...])"
 
 type Env = [(String, ExVal)]
 
@@ -44,4 +49,4 @@ exprToExVal env (EIf e1 e2 e3) = do
   case v of
     VBool b -> if b then exprToExVal env e2 else exprToExVal env e3
 
-exprToExVal _  _ = Left "Not implemented."
+-- exprToExVal _  _ = Left "Not implemented."
