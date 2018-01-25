@@ -26,9 +26,9 @@ data Expr = EInt Int
             | EApp Expr Expr
             | ELetRec String String Expr Expr
             | EVariable String
-            deriving Show
+            deriving (Eq,Show)
 
-data BinOp = Plus | Mult | Lt deriving Show
+data BinOp = Plus | Mult | Lt deriving (Eq,Show)
 
 parseTest f = parse f "Test"
 
