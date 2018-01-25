@@ -13,7 +13,6 @@ type MakeSubstituition = State Int
 
 lookupTypeEnv :: Expr -> TypeEnvironment -> MakeSubstituition Type
 lookupTypeEnv e [] = getNewTVar
--- lookupTypeEnv e [] = return $ TVar 100
 lookupTypeEnv e1 ((e2,t):r)
   | e1 == e2 = return t
   | otherwise = lookupTypeEnv e1 r
@@ -25,9 +24,12 @@ getNewTVar = do
   return (TVar i)
 
 exprToSubstituition :: Expr -> (TypeEnvironment, Maybe Substituition)
-exprToSubstituition e = (t, unifySubstituition s)
+exprToSubstituition e = (t', unifySubstituition s)
   where
     (t,s) = evalState (exprToSubstituition' [] (TVar 0) e) 1
+    t' = case unifySubstituition s of
+      Just s' -> applySubToEnv s' t
+      Nothing -> t
 
 -- First argument is bounder to given expr
 exprToSubstituition' :: TypeEnvironment -> Type -> Expr -> MakeSubstituition (TypeEnvironment, Substituition)
@@ -88,6 +90,14 @@ replace t1 t2 t3 = if t1 == t3
 -- replace all t1 in s with t2
 replaceSubstituition :: Type -> Type -> Substituition -> Substituition
 replaceSubstituition t1 t2 s = map (\(x,y) -> ((replace t1 t2 x), (replace t1 t2 y))) s
+
+-- replace all t1 in e with t2
+replaceEnv :: Type -> Type -> TypeEnvironment -> TypeEnvironment 
+replaceEnv t1 t2 e = map (\(x,y) -> (x, (replace t1 t2 y))) e
+
+applySubToEnv :: Substituition -> TypeEnvironment -> TypeEnvironment
+applySubToEnv [] t = t
+applySubToEnv ((x,y):r) t = applySubToEnv r (replaceEnv x y t)
 
 unifySubstituition :: Substituition -> Maybe Substituition
 unifySubstituition s = unifySubstituition' s []
