@@ -3,13 +3,16 @@ module Type where
 import Parse
 import Control.Monad.State
 
-data Type = TInt | TBool | TFun Type Type | TVar Int deriving (Eq, Show)
+data Type = TInt | TBool | TFun Type Type | TVar TVarIndex deriving (Eq, Show)
+-- First argument of TypeScheme are bounded variable.
+data TypeScheme = TypeScheme [TVarIndex] Type
 
+type TVarIndex = Int
 type Restriction = (Type, Type)
 type Substituition = [Restriction]
 -- First element of each element in TypeEnvironment is EVariable
 type TypeEnvironment = [(Expr, Type)]
-type MakeSubstituition = State Int
+type MakeSubstituition = State TVarIndex
 
 lookupTypeEnv :: Expr -> TypeEnvironment -> MakeSubstituition Type
 lookupTypeEnv e [] = getNewTVar
@@ -23,56 +26,53 @@ getNewTVar = do
   put (i+1)
   return (TVar i)
 
-exprToSubstituition :: Expr -> (TypeEnvironment, Maybe Substituition)
-exprToSubstituition e = (t', unifySubstituition s)
+exprToSubstituition :: Expr -> Maybe Substituition
+exprToSubstituition e = unifySubstituition s
   where
-    (t,s) = evalState (exprToSubstituition' [] (TVar 0) e) 1
-    t' = case unifySubstituition s of
-      Just s' -> applySubToEnv s' t
-      Nothing -> t
+    s = evalState (exprToSubstituition' [] (TVar 0) e) 1
 
 -- First argument is bounder to given expr
-exprToSubstituition' :: TypeEnvironment -> Type -> Expr -> MakeSubstituition (TypeEnvironment, Substituition)
+exprToSubstituition' :: TypeEnvironment -> Type -> Expr -> MakeSubstituition Substituition
 exprToSubstituition' env t e = case e of
-  EInt _ -> return (env,[(t, TInt)])
-  EBool _ -> return (env,[(t, TBool)])
+  EInt _ -> return [(t, TInt)]
+  EBool _ -> return [(t, TBool)]
   EBinOp op e1 e2 -> do
-    (env1, sub1) <- exprToSubstituition' env TInt e1
-    (env2, sub2) <- exprToSubstituition' env TInt e2
-    return (env, (rt, t) : sub1 ++ sub2)
+    sub1 <- exprToSubstituition' env TInt e1
+    sub2 <- exprToSubstituition' env TInt e2
+    return $ (rt, t) : sub1 ++ sub2
       where rt = if op == Lt then TBool else TInt
   EIf e1 e2 e3 -> do
-    (env1, sub1) <- exprToSubstituition' env TBool e1
-    (env2, sub2) <- exprToSubstituition' env1 t e2
-    (env3, sub3) <- exprToSubstituition' env2 t e3
-    return (env3,(sub1 ++ sub2 ++ sub3))
+    sub1 <- exprToSubstituition' env TBool e1
+    sub2 <- exprToSubstituition' env t e2
+    sub3 <- exprToSubstituition' env t e3
+    return $ sub1 ++ sub2 ++ sub3
   ELet s1 e1 e2 -> do
     tv1 <- getNewTVar
     let env1 = (EVariable s1, tv1) : env
-    (env2, sub1) <- exprToSubstituition' env1 tv1 e1
-    (env3, sub2) <- exprToSubstituition' env2 t e2
-    return (env3, sub1 ++ sub2)
+    sub1 <- exprToSubstituition' env1 tv1 e1
+    sub2 <- exprToSubstituition' env1 t e2
+    return $ sub1 ++ sub2
   EFun s1 e1 -> do
     tv1 <- getNewTVar
     tv2 <- getNewTVar
-    (env1, sub1) <- exprToSubstituition' ((EVariable s1, tv1) : env) tv2 e1
-    return (env1, (t, TFun tv1 tv2) : sub1)
+    sub1 <- exprToSubstituition' ((EVariable s1, tv1) : env) tv2 e1
+    return $ (t, TFun tv1 tv2) : sub1
   EApp e1 e2 -> do
     tv2 <- getNewTVar
-    (env1, sub1) <- exprToSubstituition' env (TFun tv2 t) e1
-    (env2, sub2) <- exprToSubstituition' env1 tv2 e2
-    return (env2, sub1 ++ sub2)
+    sub1 <- exprToSubstituition' env (TFun tv2 t) e1
+    sub2 <- exprToSubstituition' env tv2 e2
+    return $ sub1 ++ sub2
   ELetRec s1 s2 e1 e2 -> do
     tv1 <- getNewTVar
     tv2 <- getNewTVar
     tv3 <- getNewTVar
     let env1 = (EVariable s1, TFun tv1 tv2) : (EVariable s2, tv3) : env
-    (env2, sub1) <- exprToSubstituition' env1 tv2 e1
-    (env3, sub2) <- exprToSubstituition' env2 t e2
-    return (env3,sub1 ++ sub2)
+    sub1 <- exprToSubstituition' env1 tv2 e1
+    sub2 <- exprToSubstituition' env1 t e2
+    return $ sub1 ++ sub2
   EVariable s1 -> do
     t1 <- lookupTypeEnv (EVariable s1) env
-    return (env,[(t1, t)])
+    return [(t1, t)]
 
 freeTVar :: Type -> [Type]
 freeTVar (TVar i) = [TVar i]
