@@ -112,3 +112,4 @@ unifySubstituition' ((t1, t2) : r) b
         u <- unifySubstituition' (replaceSubstituition (TVar t3) t4 (r)) ((TVar t3,t4) : replaceSubstituition (TVar t3) t4 b)
         return u
     (t4, TVar t3) -> unifySubstituition' ((TVar t3,t4) : r) b
+    otherwise -> Nothing
