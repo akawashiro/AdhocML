@@ -91,14 +91,6 @@ replace t1 t2 t3 = if t1 == t3
 replaceSubstituition :: Type -> Type -> Substituition -> Substituition
 replaceSubstituition t1 t2 s = map (\(x,y) -> ((replace t1 t2 x), (replace t1 t2 y))) s
 
--- replace all t1 in e with t2
-replaceEnv :: Type -> Type -> TypeEnvironment -> TypeEnvironment 
-replaceEnv t1 t2 e = map (\(x,y) -> (x, (replace t1 t2 y))) e
-
-applySubToEnv :: Substituition -> TypeEnvironment -> TypeEnvironment
-applySubToEnv [] t = t
-applySubToEnv ((x,y):r) t = applySubToEnv r (replaceEnv x y t)
-
 unifySubstituition :: Substituition -> Maybe Substituition
 unifySubstituition s = unifySubstituition' s []
 unifySubstituition' [] b = return b
