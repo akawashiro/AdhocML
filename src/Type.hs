@@ -69,8 +69,8 @@ unify' ((t1, t2) : r) b
     (t4, TVar t3) -> unify' ((TVar t3,t4) : r) b
     otherwise -> fail ""
 
--- exprToSubstituition :: Expr -> Maybe (Substituition, Type)
--- exprToSubstituition e = evalState (exprToSubstituition' [] (TVar 0) e) 1
+exprToSubstituition :: Expr -> Maybe (Substituition, Type)
+exprToSubstituition e = evalState (runMaybeT $ exprToSubstituition' [] (TVar 0) e) 0
 
 -- First argument is bounder to given expr
 exprToSubstituition' :: TypeSchemeEnvironment -> Type -> Expr -> MakeSubstituition (Substituition, Type)
