@@ -91,10 +91,10 @@ exprToSubstituition' env t e = case e of
     return $ (sub3, rt)
       where rt = if op == Lt then TBool else TInt
   EIf e1 e2 e3 -> do
-    (sub1, _) <- exprToSubstituition' env TBool e1
+    (sub1, t1) <- exprToSubstituition' env TBool e1
     (sub2, t2) <- exprToSubstituition' env t e2
     (sub3, t3) <- exprToSubstituition' env t e3
-    sub4 <- unify $ (t2, t3) : sub1 ++ sub2 ++ sub3
+    sub4 <- unify $ (t1, TBool) : (t2, t3) : sub1 ++ sub2 ++ sub3
     return $ (sub4, applySub sub4 t2)
   ELet s1 e1 e2 -> do
     tv1 <- getNewTVarIndex
