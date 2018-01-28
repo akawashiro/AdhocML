@@ -70,7 +70,7 @@ unify' ((t1, t2) : r) b
     otherwise -> fail ""
 
 exprToSubstituition :: Expr -> Maybe (Substituition, Type)
-exprToSubstituition e = evalState (runMaybeT $ exprToSubstituition' [] (TVar 0) e) 0
+exprToSubstituition e = evalState (runMaybeT $ exprToSubstituition' [] (TVar 0) e) 1
 
 -- First argument is bounder to given expr
 exprToSubstituition' :: TypeSchemeEnvironment -> Type -> Expr -> MakeSubstituition (Substituition, Type)
@@ -99,9 +99,10 @@ exprToSubstituition' env t e = case e of
   EFun s1 e1 -> do
     tv1 <- getNewTVarIndex
     tv2 <- getNewTVarIndex
-    (sub1, t1) <- exprToSubstituition' ((EVariable s1, TypeScheme [] (TVar tv1)) : env) (TVar tv2) e1
-    sub2 <- unify $ (t, TFun (TVar tv1) (TVar tv2)) : sub1
-    return $ (sub2, applySub sub2 t1)
+    let env1 = (EVariable s1, TypeScheme [] (TVar tv1)) : env
+    (sub1, t1) <- exprToSubstituition' env1 (TVar tv2) e1
+    sub2 <- unify $ (t, TFun (TVar tv1) (TVar tv2)) : (t1, TVar tv2) : sub1
+    return $ (sub2, applySub sub2 (TFun (TVar tv1) (TVar tv2)))
   EApp e1 e2 -> do
     tv2 <- getNewTVarIndex
     (sub1, t1) <- exprToSubstituition' env (TFun (TVar tv2) t) e1
