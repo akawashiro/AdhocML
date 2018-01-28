@@ -1,4 +1,8 @@
 module Type where
+import Control.Monad.State
+import Control.Monad.Trans.Maybe
+import Data.List(nub)
+import Data.Maybe(fromMaybe)
 
 import Parse
 import Control.Monad.State
