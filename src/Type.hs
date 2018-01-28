@@ -54,6 +54,13 @@ applySub s (TVar i) = fromMaybe (TVar i) (lookup (TVar i) s)
 applySub s (TFun t1 t2) = TFun (applySub s t1) (applySub s t2)
 applySub _ t = t
 
+applySubEnv :: Substituition -> TypeSchemeEnvironment -> TypeSchemeEnvironment
+applySubEnv s [] = []
+applySubEnv s ((e,TypeScheme tvs ty) : r) = (e,TypeScheme (freeTVarIndex ty') ty') : r'
+  where
+    ty' = applySub s ty
+    r' = applySubEnv s r
+
 unify :: Substituition -> MakeSubstituition Substituition
 unify s = unify' s []
 unify' [] b = return b
@@ -80,7 +87,7 @@ exprToSubstituition' env t e = case e of
   EBinOp op e1 e2 -> do
     (sub1, t1) <- exprToSubstituition' env TInt e1
     (sub2, t2) <- exprToSubstituition' env TInt e2
-    sub3 <- unify $ (rt, t) : sub1 ++ sub2
+    sub3 <- unify $ (rt, t) : (t1, TInt) : (t2, TInt) : sub1 ++ sub2
     return $ (sub3, rt)
       where rt = if op == Lt then TBool else TInt
   EIf e1 e2 e3 -> do
@@ -92,7 +99,7 @@ exprToSubstituition' env t e = case e of
   ELet s1 e1 e2 -> do
     tv1 <- getNewTVarIndex
     (sub1, t1) <- exprToSubstituition' env (TVar tv1) e1
-    let env1 = (EVariable s1, TypeScheme (freeTVarIndex t1) (TVar tv1)) : env
+    let env1 = applySubEnv sub1 $ (EVariable s1, TypeScheme (freeTVarIndex t1) (TVar tv1)) : env
     (sub2, t2) <- exprToSubstituition' env1 t e2
     sub3 <- unify $ (t, t2) : sub1 ++ sub2
     return $ (sub3, applySub sub3 t)
@@ -117,7 +124,7 @@ exprToSubstituition' env t e = case e of
     sub2 <- unify sub1
     let t2 = applySub sub2 (TFun (TVar tv1) t1)
     let env2 = (EVariable s1, TypeScheme (freeTVarIndex t2) t2) : env
-    (sub2, t3) <- exprToSubstituition' env1 t e2
+    (sub2, t3) <- exprToSubstituition' (applySubEnv sub1 env1) t e2
     sub3 <- unify (sub1 ++ sub2)
     return $ (sub3, applySub sub3 t3)
   EVariable s1 -> do
