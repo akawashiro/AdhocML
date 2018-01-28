@@ -23,9 +23,12 @@ main = do
   print "------------AST----------------"
   print $ stringToProgram input
   print "------------type check----------------"
-  print $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` stringToProgram input
+  putStr $ f $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` stringToProgram input
   print "------------result----------------"
   print $ programToExVal `liftM` stringToProgram input
   print "------------result----------------"
   putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
+    where
+      f (Right s) = s
+      f (Left _) = "Failed in type checking."
 
