@@ -7,7 +7,7 @@ git clone git@github.com:akawashiro/hMLInterpreter.git && stack init && stack bu
 ## Usage
 You can test this ML interpreter easily by run test.sh.
 test.sh evaluate test.ml line by line.
-If you can compile successfully, test.ml should output following.
+If you can compile successfully, test.sh will output following.
 ```Shell
 ------------input----------------
 fun x -> x + 10;;
