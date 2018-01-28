@@ -19,15 +19,15 @@ printEnvAndSubs (a:as) = show a ++ "\n" ++ printEnvAndSubs as
 main :: IO ()
 main = do
   input <- getContents
-  print "------------input----------------"
+  putStrLn "------------input----------------"
   putStrLn input
-  print "------------AST----------------"
+  putStrLn "------------AST----------------"
   putStrLn $ g $ stringToProgram input
-  print "------------type check----------------"
+  putStrLn "------------type check----------------"
   putStr $ f "Type check failed" $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` stringToProgram input
-  print "------------result----------------"
+  putStrLn "------------result----------------"
   putStrLn $ printResult $ programToExVal `liftM` stringToProgram input
-  print "------------result----------------"
+  putStrLn "------------result----------------"
   putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
     where
       f err (Right s) = s ++ "\n"
