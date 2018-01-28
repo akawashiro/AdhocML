@@ -10,21 +10,23 @@ data TypeScheme = TypeScheme [TVarIndex] Type
 type TVarIndex = Int
 type Restriction = (Type, Type)
 type Substituition = [Restriction]
--- First element of each element in TypeEnvironment is EVariable
-type TypeEnvironment = [(Expr, Type)]
+-- First element of each element in TypeSchemeEnvironment is EVariable
+type TypeSchemeEnvironment = [(Expr, TypeScheme)]
 type MakeSubstituition = State TVarIndex
 
-lookupTypeEnv :: Expr -> TypeEnvironment -> MakeSubstituition Type
-lookupTypeEnv e [] = getNewTVar
-lookupTypeEnv e1 ((e2,t):r)
+lookupTypeSchemeEnv :: Expr -> TypeSchemeEnvironment -> MakeSubstituition TypeScheme
+lookupTypeSchemeEnv e [] = do
+  i <- getNewTVarIndex
+  return $ TypeScheme [] (TVar i)
+lookupTypeSchemeEnv e1 ((e2,t):r)
   | e1 == e2 = return t
-  | otherwise = lookupTypeEnv e1 r
+  | otherwise = lookupTypeSchemeEnv e1 r
 
-getNewTVar :: MakeSubstituition Type
-getNewTVar = do
+getNewTVarIndex :: MakeSubstituition TVarIndex
+getNewTVarIndex = do
   i <-get
   put (i+1)
-  return (TVar i)
+  return i
 
 exprToSubstituition :: Expr -> Maybe Substituition
 exprToSubstituition e = unifySubstituition s
@@ -32,7 +34,7 @@ exprToSubstituition e = unifySubstituition s
     s = evalState (exprToSubstituition' [] (TVar 0) e) 1
 
 -- First argument is bounder to given expr
-exprToSubstituition' :: TypeEnvironment -> Type -> Expr -> MakeSubstituition Substituition
+exprToSubstituition' :: TypeSchemeEnvironment -> Type -> Expr -> MakeSubstituition Substituition
 exprToSubstituition' env t e = case e of
   EInt _ -> return [(t, TInt)]
   EBool _ -> return [(t, TBool)]
@@ -73,6 +75,9 @@ exprToSubstituition' env t e = case e of
   EVariable s1 -> do
     t1 <- lookupTypeEnv (EVariable s1) env
     return [(t1, t)]
+  where 
+    tsf (TypeScheme f _) = f
+    tss (TypeScheme _ s) = s
 
 freeTVar :: Type -> [Type]
 freeTVar (TVar i) = [TVar i]
