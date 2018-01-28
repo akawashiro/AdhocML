@@ -4,6 +4,7 @@ import Parse
 import Eval
 import Type
 import Control.Monad
+import Data.List(intersperse)
 
 printResult (Right xs) = printResult' xs
 printResult (Left s) = show s
@@ -21,14 +22,15 @@ main = do
   print "------------input----------------"
   putStrLn input
   print "------------AST----------------"
-  print $ stringToProgram input
+  putStrLn $ g $ stringToProgram input
   print "------------type check----------------"
-  putStr $ f $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` stringToProgram input
+  putStr $ f "Type check failed" $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` stringToProgram input
   print "------------result----------------"
-  print $ programToExVal `liftM` stringToProgram input
+  putStrLn $ printResult $ programToExVal `liftM` stringToProgram input
   print "------------result----------------"
   putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
     where
-      f (Right s) = s
-      f (Left _) = "Failed in type checking."
-
+      f err (Right s) = s ++ "\n"
+      f err (Left _) = err
+      g (Right l) = (concat $ intersperse "\n" $ map show l) ++ "\n"
+      g (Left _) = "Parse failed."
