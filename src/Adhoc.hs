@@ -24,7 +24,7 @@ registerName s = do
   then do
     let s' = s ++ "_" ++ show (length (m M.! s))
     let m' = M.update (\l -> Just (s':l)) s m
-    put m
+    put m'
     return s'
   else do
     let s' = s ++ "_0"
@@ -55,7 +55,7 @@ branchCode' e = case e of
   EFun s1 e1 -> do
     s1' <- registerName s1
     e1' <- branchCode' e1
-    return (EFun s1' e1)
+    return (EFun s1' e1')
   EApp e1 e2 -> do
     e1' <- branchCode' e1
     e2' <- branchCode' e2
