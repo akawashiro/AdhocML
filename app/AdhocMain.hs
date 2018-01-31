@@ -26,12 +26,19 @@ main = do
   let ast = stringToProgram input
   putStrLn "------------AST----------------"
   putStrLn $ g $ ast
+
+  let adhoc = (liftM (liftM branchCode)) ast >>= return.concat
+  putStrLn "------------Adhoc translation----------------"
+  putStrLn $ g adhoc
+
+  let typeCheck = (liftM (liftM exprToSubstituition)) adhoc
   putStrLn "------------type check----------------"
-  putStr $ f "Type check failed" $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` ast
+  putStr $ f "Type check failed" $ printEnvAndSubs `liftM` (map exprToSubstituition) `liftM` adhoc
+  let as = (liftM2 zip) typeCheck adhoc
+  let h (x,y) = if x == Nothing then Nothing else Just (exprToExVal [] y)
+  let res = liftM (map h) as
   putStrLn "------------result----------------"
-  putStrLn $ printResult $ programToExVal `liftM` stringToProgram input
-  putStrLn "------------result----------------"
-  putStrLn $ printResult $ (programToExVal `liftM` stringToProgram input)
+  putStrLn $ g res
     where
       f err (Right s) = s ++ "\n"
       f err (Left _) = err

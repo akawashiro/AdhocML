@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Parse, Eval, Type
+  exposed-modules:     Lib, Parse, Eval, Type, Adhoc
   build-depends:       base >= 4.7 && < 6
                      , parsec
                      , mtl
@@ -34,14 +34,14 @@ executable hMLInterpreter-exe
                      , ghc-mod
   default-language:    Haskell2010
 
--- test-suite hMLInterpreter-test
---   type:                exitcode-stdio0.0
---   hs-source-dirs:      test
---   main-is:             Spec.hs
---   build-depends:       base
---                      , hMLInterpreter
---   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
---   default-language:    Haskell2010
+executable hMLInterpreter-Adhoc-exe
+  hs-source-dirs:      app
+  main-is:             AdhocMain.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base >= 4.7 && < 6
+                     , hMLInterpreter
+                     , ghc-mod
+  default-language:    Haskell2010
 
 source-repository head
   type:     git
