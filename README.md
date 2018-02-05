@@ -1,71 +1,54 @@
-# hMLInterpreter
-Mini ML interpreter made by Haskell.
+# AdhocML
+Mini ML interpreter which support adhoc polymophism using brute force method.
 
 ## Install
-git clone git@github.com:akawashiro/hMLInterpreter.git && stack init && stack build
+```shell
+git clone git@github.com:akawashiro/hMLInterpreter.git
+stack init
+stack build
+```
 
 ## Usage
-You can test this ML interpreter easily by run test.sh.
-test.sh evaluate test.ml line by line.
-If you can compile successfully, test.sh will output following.
+You can test this ML interpreter easily by run adhoc.sh.
+adhoc.sh evaluate adhoc.ml line by line.
+If you can compile successfully, adhoc.sh will output following.
 ```Shell
 ------------input----------------
-fun x -> x + 10;;
-fun x -> x;;
-let f = fun x -> fun y -> x + y in f;;
-let rec f = fun x -> if 10 < x then 1 else  x * f (x + 1) in f 1;;
-let f = 10 in f;;
-2 * 2;;
-19;;
-let f = fun x -> x + 10 in f;;
-let f = fun x -> x in f;;
-let f = fun x -> x in if f True then f 10 else 1;;
+let b = True in let b = 10 in if b then b else 100;;
 
 ------------AST----------------
-EFun "x" (EBinOp Plus (EVariable "x") (EInt 10))
-EFun "x" (EVariable "x")
-ELet "f" (EFun "x" (EFun "y" (EBinOp Plus (EVariable "x") (EVariable "y")))) (EVariable "f")
-ELetRec "f" "x" (EIf (EBinOp Lt (EInt 10) (EVariable "x")) (EInt 1) (EBinOp Mult (EVariable "x") (EApp (EVariable "f") (EBinOp Plus (EVariable "x") (EInt 1))))) (EApp (EVariable "f") (EInt 1))
-ELet "f" (EInt 10) (EVariable "f")
-EBinOp Mult (EInt 2) (EInt 2)
-EInt 19
-ELet "f" (EFun "x" (EBinOp Plus (EVariable "x") (EInt 10))) (EVariable "f")
-ELet "f" (EFun "x" (EVariable "x")) (EVariable "f")
-ELet "f" (EFun "x" (EVariable "x")) (EIf (EApp (EVariable "f") (EBool True)) (EApp (EVariable "f") (EInt 10)) (EInt 1))
+ELet "b" (EBool True) (ELet "b" (EInt 10) (EIf (EVariable "b") (EVariable "b") (EInt 100)))
+
+------------Adhoc translation----------------
+ELet "b_0" (EBool True) (ELet "b_1" (EInt 10) (EIf (EVariable "b_1") (EVariable "b_1") (EInt 100)))
+ELet "b_0" (EBool True) (ELet "b_1" (EInt 10) (EIf (EVariable "b_1") (EVariable "b_0") (EInt 100)))
+ELet "b_0" (EBool True) (ELet "b_1" (EInt 10) (EIf (EVariable "b_0") (EVariable "b_1") (EInt 100)))
+ELet "b_0" (EBool True) (ELet "b_1" (EInt 10) (EIf (EVariable "b_0") (EVariable "b_0") (EInt 100)))
 
 ------------type check----------------
-Just ([(TVar 1,TInt),(TVar 2,TInt),(TVar 0,TFun TInt TInt)],TFun TInt TInt)
-Just ([(TVar 1,TVar 2),(TVar 0,TFun (TVar 2) (TVar 2))],TFun (TVar 2) (TVar 2))
-Just ([(TVar 1,TFun TInt (TFun TInt TInt)),(TVar 3,TFun TInt TInt),(TVar 2,TInt),(TVar 4,TInt),(TVar 5,TInt),(TVar 0,TFun TInt (TFun TInt TInt))],TFun TInt (TFun TInt TInt))
-Just ([(TVar 4,TInt),(TVar 1,TInt),(TVar 2,TInt),(TVar 3,TInt)],TInt)
-Just ([(TVar 1,TInt),(TVar 0,TInt)],TInt)
-Just ([(TVar 0,TInt)],TInt)
-Just ([(TVar 0,TInt)],TInt)
-Just ([(TVar 1,TFun TInt TInt),(TVar 3,TInt),(TVar 2,TInt),(TVar 0,TFun TInt TInt)],TFun TInt TInt)
-Just ([(TVar 3,TVar 4),(TVar 1,TFun (TVar 4) (TVar 4)),(TVar 2,TVar 4),(TVar 0,TFun (TVar 4) (TVar 4))],TFun (TVar 4) (TVar 4))
-Just ([(TVar 4,TBool),(TVar 3,TVar 7),(TVar 6,TInt),(TVar 5,TVar 7),(TVar 1,TFun (TVar 7) (TVar 7)),(TVar 2,TVar 7),(TVar 0,TInt)],TInt)
+Nothing
+Nothing
+Just ([(TVar 2,TInt),(TVar 1,TBool),(TVar 0,TInt)],TInt)
+Nothing
 
 ------------result----------------
-(VProc "x",EBinOp Plus (EVariable "x") (EInt 10),[...])
-(VProc "x",EVariable "x",[...])
-(VProc "x",EFun "y" (EBinOp Plus (EVariable "x") (EVariable "y")),[...])
-(VInt 3628800)
-(VInt 10)
-(VInt 4)
-(VInt 19)
-(VProc "x",EBinOp Plus (EVariable "x") (EInt 10),[...])
-(VProc "x",EVariable "x",[...])
-(VInt 10)
+Nothing
+Nothing
+Just (Right (VInt 10))
+Nothing
 
-------------result----------------
-(VProc "x",EBinOp Plus (EVariable "x") (EInt 10),[...])
-(VProc "x",EVariable "x",[...])
-(VProc "x",EFun "y" (EBinOp Plus (EVariable "x") (EVariable "y")),[...])
-(VInt 3628800)
-(VInt 10)
-(VInt 4)
-(VInt 19)
-(VProc "x",EBinOp Plus (EVariable "x") (EInt 10),[...])
-(VProc "x",EVariable "x",[...])
-(VInt 10)
 ```
+
+## How it works
+This interpreter take a program which contains adhoc polymophism(overload). It branches a program for all candiates which replace all overloaded function with its candiates functions. For example, this code
+```OCaml
+let b = True in let b = 10 in if b then b else 100;;
+```
+is branced to 4 codes.
+```OCaml
+let b_0 = True in let b_1 = 10 in if b_0 then b_0 else 100;;
+let b_0 = True in let b_1 = 10 in if b_0 then b_1 else 100;;
+let b_0 = True in let b_1 = 10 in if b_1 then b_0 else 100;;
+let b_0 = True in let b_1 = 10 in if b_1 then b_1 else 100;;
+```
+Type checking is only succeeded in the third code. And only third code is executed.
