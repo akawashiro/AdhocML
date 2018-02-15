@@ -1,9 +1,8 @@
 module Z3 where
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
-import Data.List(nub)
+import Data.List(nub,intersperse)
 import Data.Maybe(fromMaybe)
-
 import Parse
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
@@ -20,9 +19,7 @@ type TypeEnvironment = [(Expr, Type)]
 type MakeSubstituition = (State TVarIndex)
 
 lookupTypeEnv :: Expr -> TypeEnvironment -> MakeSubstituition [Type]
-lookupTypeEnv e [] = do
-  i <- getNewTVarIndex
-  return $ [(TVar i)]
+lookupTypeEnv e [] = return []
 lookupTypeEnv e1 ((e2,t):r)
   | e1 == e2 = do
     ts <- lookupTypeEnv e1 r
@@ -36,31 +33,47 @@ getNewTVarIndex = do
   return i
 
 exprToZ3 :: Expr -> String
-exprToZ3 e = z3init ++ varInit nvar
+exprToZ3 e = z3init ++ varInit 0 nvar ++ subsz3 ++ z3end
   where
     subs = fst $ evalState (exprToSubstituition' [] (TVar 0) e) 1
     nvar = execState (exprToSubstituition' [] (TVar 0) e) 1
+    subsz3 = evalState (subToZ3 subs) nvar
 
 typeToZ3 :: Type -> String
 typeToZ3 TInt = "MLType.int"
 typeToZ3 TBool = "MLType.bool"
-typeToZ3 TFun s t = "MLType.fun(" ++ typeToZ3 s ++ "," ++ typeToZ3 t ++ ")"
+typeToZ3 (TFun s t) = "MLType.fun(" ++ typeToZ3 s ++ "," ++ typeToZ3 t ++ ")"
+typeToZ3 (TVar i) = "ty" ++ show i
 
-subToZ3 :: Restriction -> String
-subToZ3 (s,ts) = undefined
+subToZ3 :: Substituition -> State Int String
+subToZ3 sub = fmap concat $ mapM resToZ3 sub
 
-varInit :: Int -> String
-varInit nvar = concat $ (map (\x -> "ty" ++ show x ++ " = Const('ty" ++ show x ++ "', MLType)\n") [0..nvar-1])
+resToZ3 :: Restriction -> State Int String
+resToZ3 (s,ts) = do
+  i <- get
+  let tys = map (\i -> "ty" ++ show i) [i..i + length ts - 1]
+  let tyi = concat $ map (\(a,t) -> a ++ " = " ++ typeToZ3 t ++ "\n") (zip tys ts)
+  put (i + length ts)
+  let or = "s.add(Or(" ++ (concat (intersperse ", " (map (\a -> typeToZ3 s ++ " == " ++ a) tys))) ++ "))\n"
+  return (tyi ++ or)
+
+varInit :: Int -> Int -> String
+varInit nvars nvare = concat $ (map (\x -> "ty" ++ show x ++ " = Const('ty" ++ show x ++ "', MLType)\n") [nvars..nvare-1])
 
 z3init :: String
 z3init = "\
-  \from z3 import Datatype, IntSort, CreateDatatypes, simplify, Consts, solve, Distinct, Solver, Const, Or\n\
+  \from z3 import Datatype, Solver, Const, Or\n\
   \MLType = Datatype('MLType')\n\
   \MLType.declare('int')\n\
   \MLType.declare('bool')\n\
   \MLType.declare('fun', ('arg', MLType), ('body', MLType))\n\
   \MLType = MLType.create()\n\
-  \s = Solver()"
+  \s = Solver()\n"
+
+z3end :: String
+z3end = "\
+  \print(s.check())\n\
+  \print(s.model())\n"
 
 exprToSubstituition :: Expr -> Substituition
 exprToSubstituition e = fst a
