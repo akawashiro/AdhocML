@@ -1,13 +1,15 @@
 # ------------input----------------
-# let f = fun x -> x + 11 in f;;
+# let b = True in let b = 10 in if b then b else 100;;
 # ------------AST----------------
-# ELet "f" (EFun "x" (EBinOp Plus (EVariable "x") (EInt 11))) (EVariable "f")
+# ELet "b" (EBool True) (ELet "b" (EInt 10) (EIf (EVariable "b") (EVariable "b") (EInt 100)))
 
 # ------------Type substitution ----------------
-# Right [[(TVar 0,[TVar 0]),(TVar 1,[TFun (TVar 2) (TVar 3)]),(TInt,[TVar 3]),(TInt,[TVar 3]),(TInt,[TInt]),(TInt,[TInt]),(TInt,[TVar 2]),(TInt,[TInt]),(TVar 0,[TVar 1])]]
+# Right [[(TVar 0,[TVar 0]),(TVar 1,[TBool]),(TVar 0,[TVar 0]),(TVar 2,[TInt]),(TBool,[TBool]),(TVar 0,[TInt]),(TBool,[TVar 2,TVar 1]),(TVar 0,[TVar 2,TVar 1]),(TVar 0,[TInt])]]
 # ------------Z3 code ----------------
 from z3 import Datatype, Solver, Const, Or
 MLType = Datatype('MLType')
+MLType.declare('a')
+MLType.declare('b')
 MLType.declare('int')
 MLType.declare('bool')
 MLType.declare('fun', ('arg', MLType), ('body', MLType))
@@ -16,25 +18,26 @@ s = Solver()
 ty0 = Const('ty0', MLType)
 ty1 = Const('ty1', MLType)
 ty2 = Const('ty2', MLType)
-ty3 = Const('ty3', MLType)
-ty4 = ty0
-s.add(Or(ty0 == ty4))
-ty5 = MLType.fun(ty2,ty3)
-s.add(Or(ty1 == ty5))
-ty6 = ty3
-s.add(Or(MLType.int == ty6))
-ty7 = ty3
-s.add(Or(MLType.int == ty7))
+ty3 = ty0
+s.add(Or(ty0 == ty3))
+ty4 = MLType.bool
+s.add(Or(ty1 == ty4))
+ty5 = ty0
+s.add(Or(ty0 == ty5))
+ty6 = MLType.int
+s.add(Or(ty2 == ty6))
+ty7 = MLType.bool
+s.add(Or(MLType.bool == ty7))
 ty8 = MLType.int
-s.add(Or(MLType.int == ty8))
-ty9 = MLType.int
-s.add(Or(MLType.int == ty9))
-ty10 = ty2
-s.add(Or(MLType.int == ty10))
-ty11 = MLType.int
-s.add(Or(MLType.int == ty11))
+s.add(Or(ty0 == ty8))
+ty9 = ty2
+ty10 = ty1
+s.add(Or(MLType.bool == ty9, MLType.bool == ty10))
+ty11 = ty2
 ty12 = ty1
-s.add(Or(ty0 == ty12))
+s.add(Or(ty0 == ty11, ty0 == ty12))
+ty13 = MLType.int
+s.add(Or(ty0 == ty13))
 print(s.check())
 print(s.model())
 

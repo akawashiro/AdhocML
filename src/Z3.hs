@@ -64,6 +64,8 @@ z3init :: String
 z3init = "\
   \from z3 import Datatype, Solver, Const, Or\n\
   \MLType = Datatype('MLType')\n\
+  \MLType.declare('a')\n\
+  \MLType.declare('b')\n\
   \MLType.declare('int')\n\
   \MLType.declare('bool')\n\
   \MLType.declare('fun', ('arg', MLType), ('body', MLType))\n\
