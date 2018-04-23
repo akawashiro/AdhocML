@@ -33,11 +33,28 @@ getNewTVarIndex = do
   return i
 
 exprToZ3 :: Expr -> String
-exprToZ3 e = z3init ++ varInit 0 nvar ++ subsz3 ++ z3end
+exprToZ3 e = z3init ++ varInit 0 nvarInML ++ subsz3 ++ z3end ++ check
   where
     subs = fst $ evalState (exprToSubstituition' [] (TVar 0) e) 1
-    nvar = execState (exprToSubstituition' [] (TVar 0) e) 1
-    subsz3 = evalState (subToZ3 subs) nvar
+    nvarInML = execState (exprToSubstituition' [] (TVar 0) e) 1
+    (subsz3,nvar) = runState (subToZ3 subs) nvarInML
+    check = evalState (z3CheckUnique nvarInML) nvar
+
+z3CheckUnique :: Int -> MakeSubstituition String
+z3CheckUnique nvarInML = do
+  strs <- mapM f [0..(nvarInML-1)]
+  return $ "\n" ++ concat (map fst strs ++ map snd strs) ++ z3CheckUniqueCode
+    where
+      f x = do
+        a <- getNewTVarIndex
+        return $ ("ty" ++ show a ++ " = s.model()[ty" ++ show x ++ "]\n", "s.add(Not(" ++ "ty" ++ show a ++ " == ty" ++ show x ++ "))\n")
+
+z3CheckUniqueCode = "\
+  \print(\"Second, I check the uniqueness of the solution.\")\n\
+  \print(s.check())\n\
+  \print(s.model())\n"
+
+
 
 typeToZ3 :: Type -> String
 typeToZ3 TInt = "MLType.int"
@@ -62,7 +79,7 @@ varInit nvars nvare = concat $ (map (\x -> "ty" ++ show x ++ " = Const('ty" ++ s
 
 z3init :: String
 z3init = "\
-  \from z3 import Datatype, Solver, Const, Or\n\
+  \from z3 import Datatype, Solver, Const, Or, Not\n\
   \MLType = Datatype('MLType')\n\
   \MLType.declare('a')\n\
   \MLType.declare('b')\n\
@@ -74,6 +91,7 @@ z3init = "\
 
 z3end :: String
 z3end = "\
+  \print(\"First, I try to find a solution.\")\n\
   \print(s.check())\n\
   \print(s.model())\n"
 
