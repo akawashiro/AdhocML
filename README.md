@@ -58,6 +58,7 @@ Brute force is not efficient approach to solve the type checking problem.
 So I imporve type checking using SMT solver.
 You can check how this approach works by runnnng `z3.sh`.
 `z3.sh` will output following.
+you can find details in Z3py in [here](http://ericpony.github.io/z3py-tutorial/advanced-examples.htm) or [here](https://z3prover.github.io/api/html/classz3py_1_1_datatype.html).
 
 ```Shell
 # ------------input----------------
