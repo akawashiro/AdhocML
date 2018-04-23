@@ -1,3 +1,4 @@
+let b = True in let b = 10 in b;;
 let b = True in let b = 10 in if b then b else 100;;
 let f = fun x -> x in f;;
 fun x -> x;;

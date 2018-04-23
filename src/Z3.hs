@@ -43,14 +43,15 @@ exprToZ3 e = z3init ++ varInit 0 nvarInML ++ subsz3 ++ z3end ++ check
 z3CheckUnique :: Int -> MakeSubstituition String
 z3CheckUnique nvarInML = do
   strs <- mapM f [0..(nvarInML-1)]
-  return $ "\n" ++ concat (map fst strs ++ map snd strs) ++ z3CheckUniqueCode
+  let cond = "s.add(Or(" ++ concat (intersperse "," (map snd strs)) ++ "))\n"
+  return $ "\n" ++ concat (map fst strs) ++ cond ++ z3CheckUniqueCode
     where
       f x = do
         a <- getNewTVarIndex
-        return $ ("ty" ++ show a ++ " = s.model()[ty" ++ show x ++ "]\n", "s.add(Not(" ++ "ty" ++ show a ++ " == ty" ++ show x ++ "))\n")
+        return $ ("ty" ++ show a ++ " = s.model()[ty" ++ show x ++ "]\n", "Not(" ++ "ty" ++ show a ++ " == ty" ++ show x ++ ")")
 
 z3CheckUniqueCode = "\
-  \print(\"Second, I check the uniqueness of the solution.\")\n\
+  \print(\"Second, I check the uniqueness of the solution.\\nIf sat appears, type inference cannot work well.\")\n\
   \print(s.check())\n\
   \print(s.model())\n"
 
@@ -79,7 +80,7 @@ varInit nvars nvare = concat $ (map (\x -> "ty" ++ show x ++ " = Const('ty" ++ s
 
 z3init :: String
 z3init = "\
-  \from z3 import Datatype, Solver, Const, Or, Not\n\
+  \from z3 import Datatype, Solver, Const, Or, And, Not\n\
   \MLType = Datatype('MLType')\n\
   \MLType.declare('a')\n\
   \MLType.declare('b')\n\
